@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shape Evader Game</title>
+    <style>
+        body {
+            font-family: 'Orbitron', sans-serif; /* Space-inspired font */
+            text-align: center;
+            background: radial-gradient(circle, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 30, 1) 100%);
+            margin: 0;
+            padding: 0;
+            color: white;
+        }
+
+        h1 {
+            margin-top: 20px;
+            color: #00ff99; /* Neon green text for space feel */
+            text-shadow: 2px 2px 10px rgba(0, 255, 153, 0.7); /* Glowing effect */
+            font-size: 36px;
+        }
+
+        #gameCanvas {
+            background: url('https://www.transparenttextures.com/patterns/starry-night.png'); /* Starry background */
+            display: block;
+            margin: 20px auto;
+            border: 2px solid #fff;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.6); /* Glowing canvas border */
+        }
+
+        #gameOverMessage {
+            color: #ff0000;
+            font-size: 48px;
+            font-weight: bold;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-shadow: 2px 2px 15px rgba(255, 0, 0, 0.8);
+            display: none;
+        }
+
+        #popupMessage {
+            color: #00ff99;
+            font-size: 24px;
+            font-weight: bold;
+            position: absolute;
+            top: 60%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-shadow: 1px 1px 5px rgba(0, 255, 153, 0.8);
+            display: none;
+        }
+
+        /* Instructions moved below the game canvas */
+        #instructions {
+            color: #ff00ff; /* Bright purple for visibility */
+            font-size: 20px;
+            position: relative;
+            margin-top: 20px;
+            text-shadow: 1px 1px 5px rgba(255, 0, 255, 0.8);
+        }
+
+        /* Animations for glowing effects */
+        @keyframes glow {
+            0% {
+                text-shadow: 0 0 5px #ff0000, 0 0 10px #ff0000, 0 0 15px #ff0000;
+            }
+            50% {
+                text-shadow: 0 0 5px #00ff99, 0 0 10px #00ff99, 0 0 15px #00ff99;
+            }
+            100% {
+                text-shadow: 0 0 5px #ff0000, 0 0 10px #ff0000, 0 0 15px #ff0000;
+            }
+        }
+
+        /* Add a glowing effect to the title */
+        h1 {
+            animation: glow 1.5s ease-in-out infinite alternate;
+        }
+    </style>
+</head>
+<body>
+    <h1>Shape Evader Game</h1>
+    <div id="gameOverMessage">Game Over!</div>
+    <div id="popupMessage">Game Over, hit the spacebar to try again!</div>
+    <canvas id="gameCanvas"></canvas>
+    
+    <!-- Instructions moved below the canvas -->
+    <div id="instructions">
+        <p>1. Tap the spacebar to shoot</p>
+        <p>2. Use the arrow keys to move</p>
+        <p>3. Kill the shapes or be killed!</p>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        canvas.width = 800;
+        canvas.height = 600;
+
+        let player = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            size: 20,
+            speed: 5,
+            dx: 0,
+            dy: 0,
+            angle: 0 // Angle for the triangle's weapon
+        };
+
+        let enemies = [];
+        let bullets = [];
+        let gameOver = false;
+
+        // Function to generate enemy shapes
+        function createEnemy() {
+            let type = Math.random() < 0.5 ? 'rectangle' : 'octagon';
+            let enemy = {
+                type: type,
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                size: Math.random() * 30 + 20,
+                speed: Math.random() * 2 + 1
+            };
+            enemies.push(enemy);
+        }
+
+        // Draw the player (triangle with a black end)
+        function drawPlayer() {
+            ctx.beginPath();
+            ctx.moveTo(player.x, player.y - player.size); // Top point of the triangle
+            ctx.lineTo(player.x - player.size, player.y + player.size); // Left bottom
+            ctx.lineTo(player.x + player.size, player.y + player.size); // Right bottom
+            ctx.closePath();
+            ctx.fillStyle = "#00ff99"; // Space-like neon color for the player
+            ctx.fill();
+
+            // Draw the black end (weapon) of the triangle
+            ctx.beginPath();
+            ctx.moveTo(player.x, player.y);
+            ctx.lineTo(player.x + 10 * Math.cos(player.angle), player.y + 10 * Math.sin(player.angle)); // Black end
+            ctx.closePath();
+            ctx.strokeStyle = "#ff00ff"; // Purple weapon glow
+            ctx.lineWidth = 4;
+            ctx.stroke();
+        }
+
+        // Draw enemy shapes
+        function drawEnemies() {
+            enemies.forEach(enemy => {
+                ctx.beginPath();
+                if (enemy.type === 'rectangle') {
+                    ctx.rect(enemy.x, enemy.y, enemy.size, enemy.size / 2);
+                } else if (enemy.type === 'octagon') {
+                    const sides = 8;
+                    const radius = enemy.size / 2;
+                    ctx.moveTo(enemy.x + radius * Math.cos(0), enemy.y + radius * Math.sin(0));
+                    for (let i = 1; i <= sides; i++) {
+                        const angle = i * 2 * Math.PI / sides;
+                        ctx.lineTo(enemy.x + radius * Math.cos(angle), enemy.y + radius * Math.sin(angle));
+                    }
+                }
+                ctx.closePath();
+                ctx.fillStyle = "#ff0000"; // Red enemies for a space battle feel
+                ctx.fill();
+            });
+        }
+
+        // Draw bullets
+        function drawBullets() {
+            bullets.forEach(bullet => {
+                ctx.beginPath();
+                ctx.arc(bullet.x, bullet.y, 5, 0, 2 * Math.PI);
+                ctx.fillStyle = "#ffff00"; // Yellow bullets for contrast
+                ctx.fill();
+            });
+        }
+
+        // Move the player based on key presses
+        function movePlayer() {
+            player.x += player.dx;
+            player.y += player.dy;
+
+            // Prevent player from going off-screen
+            if (player.x - player.size < 0) player.x = player.size;
+            if (player.x + player.size > canvas.width) player.x = canvas.width - player.size;
+            if (player.y - player.size < 0) player.y = player.size;
+            if (player.y + player.size > canvas.height) player.y = canvas.height - player.size;
+        }
+
+        // Move the enemies toward the player
+        function moveEnemies() {
+            enemies.forEach(enemy => {
+                const angle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
+                enemy.x += Math.cos(angle) * enemy.speed;
+                enemy.y += Math.sin(angle) * enemy.speed;
+            });
+        }
+
+        // Move the bullets
+        function moveBullets() {
+            bullets.forEach(bullet => {
+                bullet.x += Math.cos(bullet.angle) * bullet.speed;
+                bullet.y += Math.sin(bullet.angle) * bullet.speed;
+            });
+        }
+
+        // Handle player input
+        function handleKeyDown(e) {
+            if (gameOver) {
+                if (e.key === " ") {
+                    resetGame(); // Reset the game if spacebar is pressed after game over
+                }
+            } else {
+                if (e.key === "ArrowUp") player.dy = -player.speed;
+                if (e.key === "ArrowDown") player.dy = player.speed;
+                if (e.key === "ArrowLeft") player.dx = -player.speed;
+                if (e.key === "ArrowRight") player.dx = player.speed;
+                if (e.key === " ") fireBullet(); // Fire a bullet during the game
+            }
+        }
+
+        function handleKeyUp(e) {
+            if (e.key === "ArrowUp" || e.key === "ArrowDown") player.dy = 0;
+            if (e.key === "ArrowLeft" || e.key === "ArrowRight") player.dx = 0;
+        }
+
+        // Fire a bullet from the black end of the triangle
+        function fireBullet() {
+            let bullet = {
+                x: player.x + 10 * Math.cos(player.angle),
+                y: player.y + 10 * Math.sin(player.angle),
+                speed: 10,
+                angle: player.angle
+            };
+            bullets.push(bullet);
+        }
+
+        // Check for collisions between bullets and enemies
+        function checkBulletCollisions() {
+            bullets.forEach((bullet, bulletIndex) => {
+                enemies.forEach((enemy, enemyIndex) => {
+                    const dist = Math.sqrt(Math.pow(bullet.x - enemy.x, 2) + Math.pow(bullet.y - enemy.y, 2));
+                    if (dist < enemy.size / 2) {
+                        // Bullet hits enemy
+                        bullets.splice(bulletIndex, 1);
+                        enemies.splice(enemyIndex, 1);
+                    }
+                });
+            });
+        }
+
+        // Check for collisions between player and enemies
+        function checkPlayerCollision() {
+            enemies.forEach(enemy => {
+                const dist = Math.sqrt(Math.pow(player.x - enemy.x, 2) + Math.pow(player.y - enemy.y, 2));
+                if (dist < player.size + enemy.size / 2) {
+                    // Player hits enemy, game over
+                    gameOver = true;
+                    document.getElementById("gameOverMessage").style.display = "block";
+                    document.getElementById("popupMessage").style.display = "block";
+                }
+            });
+        }
+
+        // Reset the game
+        function resetGame() {
+            player.x = canvas.width / 2;
+            player.y = canvas.height / 2;
+            enemies = [];
+            bullets = [];
+            gameOver = false;
+            document.getElementById("gameOverMessage").style.display = "none"; // Hide game over message
+            document.getElementById("popupMessage").style.display = "none"; // Hide popup message
+            gameLoop(); // Restart the game loop after resetting
+        }
+
+        // Game loop
+        function gameLoop() {
+            if (gameOver) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            movePlayer();
+            moveEnemies();
+            moveBullets();
+            drawPlayer();
+            drawEnemies();
+            drawBullets();
+            checkBulletCollisions();
+            checkPlayerCollision();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Event listeners for player movement
+        document.addEventListener("keydown", handleKeyDown);
+        document.addEventListener("keyup", handleKeyUp);
+
+        // Start the game
+        setInterval(createEnemy, 2000); // Create enemies every 2 seconds
+        gameLoop();
+    </script>
+</body>
+</html>

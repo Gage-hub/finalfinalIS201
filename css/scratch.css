@@ -1,0 +1,78 @@
+/* style.css */
+
+/* 1. Global Styles */
+body {
+  font-family: Georgia, serif;
+  background-color: #e0f7fa;
+  color: #004d40;
+  margin: 0;
+  padding: 0;
+}
+
+/* 2. Navigation */
+nav {
+  background-color: #4db6ac;
+  padding: 10px 20px;
+}
+nav a {
+  color: #e0f2f1;
+  text-decoration: none;
+  margin-right: 15px;
+  font-family: Arial, sans-serif;
+}
+nav a:hover {
+  text-decoration: underline;
+}
+
+/* 3. Header Section */
+.header {
+  background-color: #4db6ac;
+  color: #ffffff;
+  text-align: center;
+  padding: 20px;
+}
+
+/* 4. Content Block */
+.content {
+  padding: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+.content h2 {
+  color: #00695c;
+  font-family: 'Arial', sans-serif;
+}
+
+/* 5. Media/Gallery Block */
+.media {
+  background-color: #b2dfdb;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.media h2 {
+  color: #004d40;
+}
+.media img {
+  width: 80%;
+  max-width: 600px;
+  margin: 10px 0;
+}
+
+/* 6. Tableau Embed Block */
+.tableau {
+  background-color: #80cbc4;
+  padding: 20px;
+  display: block;
+}
+.tableau h2 {
+  color: #004d40;
+  font-family: 'Arial', sans-serif;
+}
+
+/* 7. Anchor Styling */
+a.anchor-link {
+  color: #d96459;
+  font-weight: bold;
+}
